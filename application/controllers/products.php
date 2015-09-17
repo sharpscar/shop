@@ -10,31 +10,35 @@ class Products extends CI_Controller {
 
 	function lists()
 	{
+		$search_word = $page_url = '';
+		$uri_segment = 4;
+		$uri_array = $this->segment_explode($this->uri->uri_string());
+
+		if(in_array('q', $uri_array)){
+			$search_word = urldecode($this->url_explode($uri_array,'q'));
+
+			//페이지네이션용 주소
+			 $page_url = '/q/'.$search_word;
+			 $uri_segment =6;
+		}
 		$this->load->library('pagination');
-		$uri_segment = 5;
-		$search_word = '';
-		$config['base_url'] = 'http://localhost/shop/index.php/products/lists/';
-		$config['total_rows'] = 1700;
+
+		$config['base_url'] = 'http://localhost/shop/index.php/products/lists/'.$page_url.'/page/';
+		#게시물의 전체 갯수 지금은 몇개인지 알고있다 추후 주석대로 변경.
+		$config['total_rows'] = 1700; # $this->modelName->get_list($this->uri->segment(1),'count','','',$search_word);
 		$config['per_page'] = 10;
-		$config['uri_segment'] = 3;
-		$configp['num_links'] =0;
+		$config['uri_segment'] = $uri_segment;
+
 		$this->pagination->initialize($config);
 		//주소중에서 q(검색어) 세그먼트가 있는지 검사하기 위해 주소를 배열로 변환
-		$uri_array = $this->segment_explode($this->uri->uri_string());
-		#var_dump($uri_array);
-		$uri_array[3] = isset($uri_array[3])? $uri_array[3]:0 ;
 
-		// if( in_array('q', $uri_array) ) {
-		// 	//주소에 검색어가 있을 경우의 처리. 즉 검색시
-		// 	$search_word = urldecode($this->url_explode($uri_array, 'q'));
-		//
-		// 	//페이지네이션용 주소
-		// 	$page_url = '/q/'.$search_word;
-		// 	$uri_segment = 7;
-		// }
+		#var_dump($this->uri->uri_string());
+		#$uri_array[3] = isset($uri_array[3])? $uri_array[3]:0 ;
 
+
+		$data['pagination'] = $this->pagination->create_links();
 		//게시판 목록을 불러오기 위한 offset, limit 값 가져오기
-		$data['page'] = $page = $this->uri->segment(3,1);
+		$data['page'] = $page = $this->uri->segment( $uri_segment,1);
 
 		var_dump($page);
 
@@ -48,16 +52,18 @@ class Products extends CI_Controller {
 		}
 
 		$limit = $config['per_page'];
-		$data['pagination'] = $this->pagination->create_links();
-		$data['list'] = $this->product->get_list('products', '', $start, $limit, $search_word);
+		#$data['pagination'] = $this->pagination->create_links();
+		$data['list'] = $this->product->get_list($this->uri->segment(1), '', $start, $limit, $search_word);
 
-
-
+		// var_dump($this->uri->segment(0));
 
 		$this->load->view('header');
 		$this->load->view('product', $data);
 		$this->load->view('footer');
 	}
+
+
+
 	//필요한 양만큼 리스트에 넣어준다.
 	function list_mount($mount){
 		$start = 0; $limit = $mount; $search_word='';
@@ -67,19 +73,33 @@ class Products extends CI_Controller {
 	 function index()
 	{
 
-				$result = $this->product->gets();
-				#var_dump($result);
-
-				$this->load->library('pagination');
-
-
-				// echo "<Br><Br><Br><Br><Br><Br><Br><Br>";
-				// echo($data['pagination']);
-				$this->load->view('header');
-				$this->load->view('product', array('result'=>$result));
-				$this->load->view('footer');
+				// $result = $this->product->gets();
+				// $this->load->view('header');
+				// $this->load->view('product', array('result'=>$result));
+				// $this->load->view('footer');
 
 	}
+
+	/**
+ * url중 키값을 구분하여 값을 가져오도록.
+ *
+ * @param Array $url : segment_explode 한 url값
+ * @param String $key : 가져오려는 값의 key
+ * @return String $url[$k] : 리턴값
+ */
+function url_explode($url, $key)
+{
+	$cnt = count($url);
+	for($i=0; $cnt>$i; $i++ )
+	{
+		if($url[$i] ==$key)
+		{
+			$k = $i+1;
+			return $url[$k];
+		}
+	}
+}
+
 
 	/**
  * HTTP의 URL을 "/"를 Delimiter로 사용하여 배열로 바꾸어 리턴한다.
